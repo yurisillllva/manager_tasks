@@ -15,7 +15,7 @@ Aplicação de gerenciamento de tarefas com autenticação JWT e interface Blade
 1. **Clonar repositório**
 ```bash
 git clone https://github.com/yurisillllva/manager_tasks.git
-cd task-manager
+cd manager_tasks
 ```
 
 2. **Instalar dependências**
