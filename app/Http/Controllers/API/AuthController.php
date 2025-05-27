@@ -2,50 +2,56 @@
 
 namespace App\Http\Controllers\API;
 
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
     public function register(RegisterRequest $request)
     {
-        $user = User::create($request->validated());
+        $user  = User::create($request->validated());
+
+        Auth::login($user);
+
         $token = JWTAuth::fromUser($user);
-        
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => config('jwt.ttl') * 60 
-        ], 201);
+
+        return redirect()
+            ->route('tasks.index')
+            ->withCookie(cookie('jwt_token', $token, (int) config('jwt.ttl')))
+            ->with('success', 'Cadastro realizado com sucesso!');
+    }
+
+
+    public function showRegistrationForm()
+    {
+        return view('auth.register');
     }
 
     public function login(LoginRequest $request)
     {
         $credentials = $request->only('email', 'password');
 
-        if (!$token = auth('api')->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+        if (! Auth::attempt($credentials)) {            // usa o guard padrão = web
+            return back()
+                ->withErrors(['email' => 'Credenciais inválidas'])
+                ->withInput();
         }
 
-        return $this->respondWithToken($token);
-    }
+        $user  = Auth::user();                          // já logado via sessão
+        $token = JWTAuth::fromUser($user);              // gera JWT p/ requests AJAX
 
+        return redirect()
+            ->route('tasks.index')
+            ->withCookie(cookie('jwt_token', $token, (int) config('jwt.ttl')));
+    }
     public function logout()
     {
-        auth('api')->logout();
-        return response()->json(['message' => 'Successfully logged out']);
-    }
-
-    protected function respondWithToken($token)
-    {
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => config('jwt.ttl') * 60 
-        ]);
+        Auth::guard('web')->logout();
+        return redirect()->route('login')
+            ->withoutCookie('jwt_token');
     }
 }
