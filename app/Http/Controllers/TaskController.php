@@ -28,15 +28,37 @@ class TaskController extends Controller
     public function store(TaskRequest $request)
     {
         $this->taskRepository->createTask($request->validated() + [
-            'user_id' => auth('api')->user()->id
+            'user_id' => auth()->id() // Alterado para auth() padrão
         ]);
-        return redirect()->route('tasks.index')->with('success', 'Task created!');
+        return redirect()->route('tasks.index')->with('success', 'Tarefa criada com sucesso!');
+    }
+
+    public function create()
+    {
+        return view('tasks.create');
+    }
+
+    public function edit($id)
+    {
+        $task = $this->taskRepository->getTaskById($id);
+
+        if ($task->user_id !== auth()->id()) {
+            return redirect()->route('tasks.index')->with('error', 'Você não tem permissão para editar esta tarefa!');
+        }
+
+        return view('tasks.edit', compact('task'));
     }
 
     public function update(TaskRequest $request, $id)
     {
+        $task = $this->taskRepository->getTaskById($id);
+
+        if ($task->user_id !== auth()->id()) {
+            return redirect()->route('tasks.index')->with('error', 'Ação não autorizada!');
+        }
+
         $this->taskRepository->updateTask($id, $request->validated());
-        return redirect()->route('tasks.index')->with('success', 'Task updated!');
+        return redirect()->route('tasks.index')->with('success', 'Tarefa atualizada com sucesso!');
     }
 
     public function destroy($id)
