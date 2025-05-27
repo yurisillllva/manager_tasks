@@ -24,7 +24,12 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function updateTask($id, array $details)
     {
-        return Task::whereId($id)->update($details);
+        $task = Task::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $task->update($details);
+        return $task;
     }
 
     public function deleteTask($id)
@@ -34,7 +39,8 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function filterTasks($status, $sortBy)
     {
-        return Task::when($status, function ($query) use ($status) {
+        return Task::where('user_id', auth()->id())
+            ->when($status, function ($query) use ($status) {
                 return $query->where('status', $status);
             })
             ->orderBy('created_at', $sortBy ?? 'asc')
